@@ -11,17 +11,10 @@ export type APIProvider =
   | 'kimi'
 
 export function getAPIProvider(): APIProvider {
-  return isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK)
-    ? 'bedrock'
-    : isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX)
-      ? 'vertex'
-      : isEnvTruthy(process.env.CLAUDE_CODE_USE_FOUNDRY)
-        ? 'foundry'
-        : isEnvTruthy(process.env.CLAUDE_CODE_USE_OPENAI)
-          ? 'openai'
-          : isKimiProviderEnabled()
-            ? 'kimi'
-            : 'firstParty'
+  // Safety-hardened fork: lock the runtime to Moonshot Kimi only.
+  // This prevents accidental fallback to Anthropic/OpenAI/Bedrock/Vertex/Foundry
+  // providers through environment variables inherited from the host.
+  return isKimiProviderEnabled() ? 'kimi' : 'firstParty'
 }
 
 export function getAPIProviderForStatsig(): AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS {

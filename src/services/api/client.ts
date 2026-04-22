@@ -336,12 +336,12 @@ export async function getAnthropicClient({
         ? null
         : apiKey || getAnthropicApiKey(),
     authToken: useKimiProvider
-      ? apiKey || getAnthropicApiKey() || getMoonshotApiKey() || undefined
+      ? apiKey || getMoonshotApiKey() || undefined
       : isClaudeAISubscriber()
         ? getClaudeAIOAuthTokens()?.accessToken
         : undefined,
     ...(useKimiProvider
-      ? { baseURL: process.env.ANTHROPIC_BASE_URL || KIMI_ANTHROPIC_BASE_URL }
+      ? { baseURL: KIMI_ANTHROPIC_BASE_URL }
       : process.env.USER_TYPE === 'ant' &&
           isEnvTruthy(process.env.USE_STAGING_OAUTH)
         ? { baseURL: getOauthConfig().BASE_API_URL }
@@ -360,7 +360,7 @@ async function configureApiKeyHeaders(
 ): Promise<void> {
   const token =
     getAPIProvider() === 'kimi'
-      ? apiKey || getAnthropicApiKey() || getMoonshotApiKey()
+      ? apiKey || getMoonshotApiKey()
       : process.env.ANTHROPIC_AUTH_TOKEN ||
         (await getApiKeyFromApiKeyHelper(isNonInteractiveSession))
   if (token) {

@@ -23,5 +23,7 @@ export function isKimiProviderEnabled(): boolean {
 }
 
 export function getMoonshotApiKey(): string | undefined {
-  return process.env.MOONSHOT_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN
+  // Safety-hardened fork: only accept the explicit Moonshot key.
+  // Do not silently reuse Anthropic auth tokens for Kimi requests.
+  return process.env.MOONSHOT_API_KEY
 }
