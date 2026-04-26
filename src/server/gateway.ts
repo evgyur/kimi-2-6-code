@@ -19,6 +19,9 @@ export type GatewayConfig = {
   token?: string
   allowedDirectories: string[]
   command?: string
+  defaultTools?: string
+  defaultPermissionMode?: PermissionMode
+  maxConcurrency?: number
   defaultTimeoutMs?: number
   maxTimeoutMs?: number
   runKimi?: (request: KimiRunRequest) => Promise<KimiRunResult>
@@ -27,8 +30,6 @@ export type GatewayConfig = {
 type ChatRequestBody = {
   prompt?: unknown
   cwd?: unknown
-  tools?: unknown
-  permissionMode?: unknown
   outputFormat?: unknown
   timeoutMs?: unknown
   addDirs?: unknown
@@ -199,6 +200,8 @@ export function createGatewayApp(config: GatewayConfig): { fetch: (request: Requ
       runKimiCode({ ...request, command: config.command ?? DEFAULT_COMMAND }))
   const defaultTimeoutMs = config.defaultTimeoutMs ?? DEFAULT_TIMEOUT_MS
   const maxTimeoutMs = config.maxTimeoutMs ?? MAX_TIMEOUT_MS
+  const maxConcurrency = Math.max(1, config.maxConcurrency ?? 1)
+  let activeRequests = 0
 
   return {
     async fetch(request: Request): Promise<Response> {
@@ -233,13 +236,21 @@ export function createGatewayApp(config: GatewayConfig): { fetch: (request: Requ
       if (body.addDirs !== undefined && !addDirs) {
         return json({ ok: false, error: 'add_dirs_must_be_strings' }, { status: 400 })
       }
+      for (const dir of addDirs ?? []) {
+        if (!isAllowedWorkingDirectory(dir, config.allowedDirectories)) {
+          return json({ ok: false, error: 'add_dir_not_allowed' }, { status: 403 })
+        }
+      }
+      if (activeRequests >= maxConcurrency) {
+        return json({ ok: false, error: 'too_many_requests' }, { status: 429 })
+      }
 
       const timeoutMs = clampTimeout(body.timeoutMs, defaultTimeoutMs, maxTimeoutMs)
       const args = buildKimiArgs({
         prompt: body.prompt,
-        tools: typeof body.tools === 'string' ? body.tools : '',
+        tools: config.defaultTools ?? '',
         outputFormat: asOutputFormat(body.outputFormat),
-        permissionMode: asPermissionMode(body.permissionMode),
+        permissionMode: config.defaultPermissionMode ?? 'default',
         addDirs,
         model: asOptionalString(body.model),
         systemPrompt: asOptionalString(body.systemPrompt),
@@ -247,8 +258,15 @@ export function createGatewayApp(config: GatewayConfig): { fetch: (request: Requ
       })
 
       const startedAt = Date.now()
-      const result = await runKimi({ args, cwd, timeoutMs })
-      const durationMs = Date.now() - startedAt
+      activeRequests += 1
+      let result: KimiRunResult
+      let durationMs: number
+      try {
+        result = await runKimi({ args, cwd, timeoutMs })
+        durationMs = Date.now() - startedAt
+      } finally {
+        activeRequests -= 1
+      }
 
       if (result.exitCode !== 0) {
         return json(
@@ -283,6 +301,12 @@ export function loadGatewayConfigFromEnv(): GatewayConfig & {
     token: process.env.KIMI_SERVER_TOKEN,
     allowedDirectories: parseAllowedDirectories(process.env.KIMI_ALLOWED_DIRS),
     command: process.env.KIMI_SERVER_COMMAND,
+    defaultTools: process.env.KIMI_SERVER_TOOLS || '',
+    defaultPermissionMode: asPermissionMode(process.env.KIMI_SERVER_PERMISSION_MODE),
+    maxConcurrency: Number.parseInt(
+      process.env.KIMI_SERVER_MAX_CONCURRENCY || '1',
+      10,
+    ),
     defaultTimeoutMs: Number.parseInt(
       process.env.KIMI_SERVER_TIMEOUT_MS || String(DEFAULT_TIMEOUT_MS),
       10,
