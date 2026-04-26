@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { join } from 'path'
 import {
   buildKimiArgs,
   createGatewayApp,
@@ -14,17 +15,12 @@ describe('gateway configuration', () => {
   })
 
   test('allows child paths inside configured directories', () => {
-    const allowed = ['C:\\Users\\user\\repo']
+    const repo = join('tmp', 'repo')
+    const allowed = [repo]
 
-    expect(isAllowedWorkingDirectory('C:\\Users\\user\\repo', allowed)).toBe(
-      true,
-    )
-    expect(
-      isAllowedWorkingDirectory('C:\\Users\\user\\repo\\subdir', allowed),
-    ).toBe(true)
-    expect(isAllowedWorkingDirectory('C:\\Users\\user\\other', allowed)).toBe(
-      false,
-    )
+    expect(isAllowedWorkingDirectory(repo, allowed)).toBe(true)
+    expect(isAllowedWorkingDirectory(join(repo, 'subdir'), allowed)).toBe(true)
+    expect(isAllowedWorkingDirectory(join('tmp', 'other'), allowed)).toBe(false)
   })
 
   test('builds a conservative kimi-code print invocation', () => {
