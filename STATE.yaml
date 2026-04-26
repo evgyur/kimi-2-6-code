@@ -1,0 +1,32 @@
+project: kimi-2-6-code-local-api
+updated: 2026-04-26
+decision:
+  selected: "Bun HTTP gateway over kimi-code -p"
+  why: "Small reversible layer that exposes the existing verified CLI without changing the interactive REPL."
+  non_goals:
+    - "Public internet exposure"
+    - "Multi-user auth"
+    - "Persistent job database"
+tasks:
+  - id: T-001
+    title: "Implement local HTTP API gateway"
+    owner: codex
+    status: done
+    context: "Expose kimi-code to local bots and LAN devices through a token-protected HTTP API."
+    acceptance:
+      - "GET /health returns ok"
+      - "POST /v1/chat requires Bearer auth when a token is configured"
+      - "POST /v1/chat validates prompt and working directory allowlist"
+      - "POST /v1/chat runs kimi-code -p and returns JSON"
+      - "Server can bind to localhost by default and optionally LAN via env"
+    verification:
+      - "bun test src/server/gateway.test.ts"
+      - "bun run build"
+      - "Start local server and call /health plus /v1/chat"
+    risk: "Exposes shell-capable coding agent over HTTP; default bind and token auth must be conservative."
+    evidence:
+      - "bun test src\\server\\gateway.test.ts src\\utils\\model\\kimi.test.ts: 10 pass"
+      - "bun build .\\src\\entrypoints\\server.ts --outfile .\\dist\\server.js --target bun: success"
+      - "bun run build: Built ./cli"
+      - "Live smoke: /health ok and /v1/chat returned API_OK"
+    last_checkpoint: "HTTP gateway implemented and verified"
