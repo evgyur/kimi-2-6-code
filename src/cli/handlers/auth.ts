@@ -183,6 +183,7 @@ export async function authStatus(opts: {
   const { source: authTokenSource, hasToken } = getAuthTokenSource()
   const { source: apiKeySource } = getAnthropicApiKeyWithSource()
   const hasApiKeyEnvVar =
+    !!process.env.KIMI_API_KEY ||
     !!process.env.MOONSHOT_API_KEY ||
     (!!process.env.ANTHROPIC_API_KEY && !isRunningOnHomespace())
   const oauthAccount = getOauthAccountInfo()
@@ -237,7 +238,13 @@ export async function authStatus(opts: {
     }
     if (!hasAuthProperty && hasApiKeyEnvVar) {
       process.stdout.write(
-        `API key: ${process.env.MOONSHOT_API_KEY ? 'MOONSHOT_API_KEY' : 'ANTHROPIC_API_KEY'}\n`,
+        `API key: ${
+          process.env.KIMI_API_KEY
+            ? 'KIMI_API_KEY'
+            : process.env.MOONSHOT_API_KEY
+              ? 'MOONSHOT_API_KEY'
+              : 'ANTHROPIC_API_KEY'
+        }\n`,
       )
     }
     if (!loggedIn) {
@@ -250,9 +257,11 @@ export async function authStatus(opts: {
       apiKeySource !== 'none'
         ? apiKeySource
         : hasApiKeyEnvVar
-          ? process.env.MOONSHOT_API_KEY
-            ? 'MOONSHOT_API_KEY'
-            : 'ANTHROPIC_API_KEY'
+          ? process.env.KIMI_API_KEY
+            ? 'KIMI_API_KEY'
+            : process.env.MOONSHOT_API_KEY
+              ? 'MOONSHOT_API_KEY'
+              : 'ANTHROPIC_API_KEY'
           : null
     const output: Record<string, string | boolean | null> = {
       loggedIn,

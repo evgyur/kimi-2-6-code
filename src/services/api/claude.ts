@@ -55,7 +55,7 @@ import {
   splitSysPromptPrefix,
   toolToAPISchema,
 } from '../../utils/api.js'
-import { getOauthAccountInfo } from '../../utils/auth.js'
+import { getAnthropicApiKey, getOauthAccountInfo } from '../../utils/auth.js'
 import {
   getBedrockExtraBodyParamsBetas,
   getMergedBetas,
@@ -204,6 +204,7 @@ import {
   normalizeModelStringForAPI,
   parseUserSpecifiedModel,
 } from '../../utils/model/model.js'
+import { resolveKimiModelForAPI } from '../../utils/model/kimi.js'
 import {
   startSessionActivity,
   stopSessionActivity,
@@ -538,7 +539,7 @@ export async function verifyApiKey(
 
   try {
     // WARNING: if you change this to use a non-Haiku model, this request will fail in 1P unless it uses getCLISyspromptPrefix.
-    const model = getSmallFastModel()
+    const model = resolveKimiModelForAPI(getSmallFastModel(), apiKey)
     const betas = getModelBetas(model)
     return await returnValue(
       withRetry(
@@ -1707,7 +1708,9 @@ async function* queryModel(
     lastRequestBetas = betasParams
 
     return {
-      model: normalizeModelStringForAPI(options.model),
+      model: normalizeModelStringForAPI(
+        resolveKimiModelForAPI(options.model, getAnthropicApiKey()),
+      ),
       messages: addCacheBreakpoints(
         messagesForAPI,
         enablePromptCaching,

@@ -24,8 +24,8 @@ import {
   isFirstPartyAnthropicBaseUrl,
 } from 'src/utils/model/providers.js'
 import {
+  getKimiAnthropicBaseUrl,
   getMoonshotApiKey,
-  KIMI_ANTHROPIC_BASE_URL,
 } from 'src/utils/model/kimi.js'
 import { getProxyFetchOptions } from 'src/utils/proxy.js'
 import {
@@ -330,18 +330,21 @@ export async function getAnthropicClient({
 
   // Determine authentication method based on available tokens
   const useKimiProvider = getAPIProvider() === 'kimi'
+  const kimiApiKey = useKimiProvider
+    ? apiKey || getAnthropicApiKey() || getMoonshotApiKey()
+    : undefined
   const clientConfig: ConstructorParameters<typeof Anthropic>[0] = {
     apiKey:
       useKimiProvider || isClaudeAISubscriber()
         ? null
         : apiKey || getAnthropicApiKey(),
     authToken: useKimiProvider
-      ? apiKey || getMoonshotApiKey() || undefined
+      ? kimiApiKey
       : isClaudeAISubscriber()
         ? getClaudeAIOAuthTokens()?.accessToken
         : undefined,
     ...(useKimiProvider
-      ? { baseURL: KIMI_ANTHROPIC_BASE_URL }
+      ? { baseURL: getKimiAnthropicBaseUrl(kimiApiKey) }
       : process.env.USER_TYPE === 'ant' &&
           isEnvTruthy(process.env.USE_STAGING_OAUTH)
         ? { baseURL: getOauthConfig().BASE_API_URL }
@@ -360,7 +363,7 @@ async function configureApiKeyHeaders(
 ): Promise<void> {
   const token =
     getAPIProvider() === 'kimi'
-      ? apiKey || getMoonshotApiKey()
+      ? apiKey || getAnthropicApiKey() || getMoonshotApiKey()
       : process.env.ANTHROPIC_AUTH_TOKEN ||
         (await getApiKeyFromApiKeyHelper(isNonInteractiveSession))
   if (token) {
