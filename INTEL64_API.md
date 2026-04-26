@@ -111,11 +111,9 @@ curl -fsS \
 
 - `prompt` string, required
 - `cwd` string, optional; must be under `KIMI_ALLOWED_DIRS`
-- `tools` string, optional; defaults to disabled tools
-- `permissionMode` string, optional; defaults to `default`
+- `tools` is controlled by `KIMI_SERVER_TOOLS`, not by clients
+- `permissionMode` is controlled by `KIMI_SERVER_PERMISSION_MODE`, not by clients
 - `outputFormat` string, optional; `text`, `json`, or `stream-json`
 - `timeoutMs` number, optional
 - `addDirs` string array, optional
-- `model` string, optional
-- `systemPrompt` string, optional
-- `appendSystemPrompt` string, optional
+- `model`, `systemPrompt`, and `appendSystemPrompt` are controlled by server env only

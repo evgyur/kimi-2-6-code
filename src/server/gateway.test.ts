@@ -100,6 +100,9 @@ describe('gateway HTTP app', () => {
           cwd: 'C:\\Users\\user\\repo',
           tools: 'Bash',
           permissionMode: 'bypassPermissions',
+          model: 'caller-model',
+          systemPrompt: 'caller system prompt',
+          appendSystemPrompt: 'caller appended prompt',
         }),
       }),
     )
@@ -113,6 +116,64 @@ describe('gateway HTTP app', () => {
     expect(body.text).toContain('--tools=')
     expect(body.text).not.toContain('bypassPermissions')
     expect(body.text).not.toContain('Bash')
+    expect(body.text).not.toContain('caller-model')
+    expect(body.text).not.toContain('caller system prompt')
+    expect(body.text).not.toContain('caller appended prompt')
+  })
+
+  test('fails closed when no working directory allowlist is configured', async () => {
+    const app = createGatewayApp({
+      token: 'secret',
+      allowedDirectories: [],
+      runKimi: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    })
+
+    const response = await app.fetch(
+      new Request('http://localhost/v1/chat', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer secret',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: 'hello',
+          cwd: 'C:\\Users\\user\\repo',
+        }),
+      }),
+    )
+
+    expect(response.status).toBe(403)
+  })
+
+  test('redacts stderr from failed kimi-code calls by default', async () => {
+    const app = createGatewayApp({
+      token: 'secret',
+      allowedDirectories: ['C:\\Users\\user\\repo'],
+      runKimi: async () => ({
+        exitCode: 1,
+        stdout: '',
+        stderr: 'sensitive /home/chip/path',
+      }),
+    })
+
+    const response = await app.fetch(
+      new Request('http://localhost/v1/chat', {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer secret',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: 'hello',
+          cwd: 'C:\\Users\\user\\repo',
+        }),
+      }),
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(502)
+    expect(body.stderr).toBeUndefined()
+    expect(JSON.stringify(body)).not.toContain('sensitive')
   })
 
   test('rejects cwd outside allowlist', async () => {
@@ -171,7 +232,7 @@ describe('gateway HTTP app', () => {
     })
     const app = createGatewayApp({
       token: 'secret',
-      allowedDirectories: [],
+      allowedDirectories: ['C:\\Users\\user\\repo'],
       maxConcurrency: 1,
       runKimi: async () => {
         await blocker
@@ -186,7 +247,7 @@ describe('gateway HTTP app', () => {
           Authorization: 'Bearer secret',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt: 'first' }),
+        body: JSON.stringify({ prompt: 'first', cwd: 'C:\\Users\\user\\repo' }),
       }),
     )
     const second = await app.fetch(
@@ -196,7 +257,7 @@ describe('gateway HTTP app', () => {
           Authorization: 'Bearer secret',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt: 'second' }),
+        body: JSON.stringify({ prompt: 'second', cwd: 'C:\\Users\\user\\repo' }),
       }),
     )
 

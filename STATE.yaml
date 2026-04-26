@@ -30,3 +30,22 @@ tasks:
       - "bun run build: Built ./cli"
       - "Live smoke: /health ok and /v1/chat returned API_OK"
     last_checkpoint: "HTTP gateway implemented and verified"
+  - id: T-002
+    title: "Close residual security review findings"
+    owner: codex
+    status: done
+    context: "Fix remaining gateway risks found in full security review."
+    acceptance:
+      - "Empty KIMI_ALLOWED_DIRS fails closed for /v1/chat"
+      - "Callers cannot override model or system prompts"
+      - "stderr is not returned to API callers by default"
+      - "Live intel64 service remains reachable through HTTPS after deploy"
+    verification:
+      - "bun test src\\server\\gateway.test.ts src\\utils\\model\\kimi.test.ts"
+      - "bun build .\\src\\entrypoints\\server.ts --outfile .\\dist\\server.js --target bun"
+      - "intel64 tests and HTTPS smoke"
+    risk: "Gateway fronts a coding agent; fail-open behavior can expose filesystem or command-capable agent features."
+    evidence:
+      - "Added failing tests for empty allowlist, caller model/system prompt overrides, and stderr leakage"
+      - "bun test src\\server\\gateway.test.ts src\\utils\\model\\kimi.test.ts: 14 pass"
+    last_checkpoint: "Residual security findings fixed locally; pending intel64 deployment evidence"

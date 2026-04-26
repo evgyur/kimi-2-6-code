@@ -21,6 +21,10 @@ export type GatewayConfig = {
   command?: string
   defaultTools?: string
   defaultPermissionMode?: PermissionMode
+  defaultModel?: string
+  defaultSystemPrompt?: string
+  defaultAppendSystemPrompt?: string
+  includeStderr?: boolean
   maxConcurrency?: number
   defaultTimeoutMs?: number
   maxTimeoutMs?: number
@@ -33,9 +37,6 @@ type ChatRequestBody = {
   outputFormat?: unknown
   timeoutMs?: unknown
   addDirs?: unknown
-  model?: unknown
-  systemPrompt?: unknown
-  appendSystemPrompt?: unknown
 }
 
 type BuildArgsInput = {
@@ -80,8 +81,8 @@ export function isAllowedWorkingDirectory(
   cwd: string | undefined,
   allowedDirectories: string[],
 ): boolean {
-  if (!cwd) return true
-  if (allowedDirectories.length === 0) return true
+  if (allowedDirectories.length === 0) return false
+  if (!cwd) return false
 
   const normalizedCwd = normalizePathForCompare(cwd)
   return allowedDirectories.some(allowed => {
@@ -252,9 +253,9 @@ export function createGatewayApp(config: GatewayConfig): { fetch: (request: Requ
         outputFormat: asOutputFormat(body.outputFormat),
         permissionMode: config.defaultPermissionMode ?? 'default',
         addDirs,
-        model: asOptionalString(body.model),
-        systemPrompt: asOptionalString(body.systemPrompt),
-        appendSystemPrompt: asOptionalString(body.appendSystemPrompt),
+        model: config.defaultModel,
+        systemPrompt: config.defaultSystemPrompt,
+        appendSystemPrompt: config.defaultAppendSystemPrompt,
       })
 
       const startedAt = Date.now()
@@ -274,7 +275,7 @@ export function createGatewayApp(config: GatewayConfig): { fetch: (request: Requ
             ok: false,
             error: 'kimi_failed',
             exitCode: result.exitCode,
-            stderr: result.stderr,
+            ...(config.includeStderr && { stderr: result.stderr }),
             durationMs,
           },
           { status: 502 },
@@ -303,6 +304,10 @@ export function loadGatewayConfigFromEnv(): GatewayConfig & {
     command: process.env.KIMI_SERVER_COMMAND,
     defaultTools: process.env.KIMI_SERVER_TOOLS || '',
     defaultPermissionMode: asPermissionMode(process.env.KIMI_SERVER_PERMISSION_MODE),
+    defaultModel: process.env.KIMI_SERVER_MODEL,
+    defaultSystemPrompt: process.env.KIMI_SERVER_SYSTEM_PROMPT,
+    defaultAppendSystemPrompt: process.env.KIMI_SERVER_APPEND_SYSTEM_PROMPT,
+    includeStderr: process.env.KIMI_SERVER_INCLUDE_STDERR === '1',
     maxConcurrency: Number.parseInt(
       process.env.KIMI_SERVER_MAX_CONCURRENCY || '1',
       10,

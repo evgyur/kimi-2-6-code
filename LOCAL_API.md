@@ -49,14 +49,12 @@ Invoke-RestMethod `
 
 - `prompt` string, required
 - `cwd` string, optional and checked against `KIMI_ALLOWED_DIRS`
-- `tools` string, optional; defaults to disabled tools
-- `permissionMode` string, optional; defaults to `default`
+- `tools` is controlled by `KIMI_SERVER_TOOLS`, not by clients
+- `permissionMode` is controlled by `KIMI_SERVER_PERMISSION_MODE`, not by clients
 - `outputFormat` string, optional; `text`, `json`, or `stream-json`
 - `timeoutMs` number, optional
 - `addDirs` string array, optional
-- `model` string, optional
-- `systemPrompt` string, optional
-- `appendSystemPrompt` string, optional
+- `model`, `systemPrompt`, and `appendSystemPrompt` are controlled by server env only
 
 ## Environment
 
@@ -65,5 +63,11 @@ Invoke-RestMethod `
 - `KIMI_SERVER_TOKEN`, bearer token; strongly recommended
 - `KIMI_ALLOWED_DIRS`, semicolon-separated allowed working directories
 - `KIMI_SERVER_COMMAND`, default `kimi-code`
+- `KIMI_SERVER_TOOLS`, default disabled tools
+- `KIMI_SERVER_PERMISSION_MODE`, default `default`
+- `KIMI_SERVER_MODEL`, optional server-side model override
+- `KIMI_SERVER_SYSTEM_PROMPT`, optional server-side system prompt
+- `KIMI_SERVER_APPEND_SYSTEM_PROMPT`, optional server-side appended system prompt
+- `KIMI_SERVER_INCLUDE_STDERR`, set `1` only for trusted debugging
 - `KIMI_SERVER_TIMEOUT_MS`, default `120000`
 - `KIMI_SERVER_MAX_TIMEOUT_MS`, default `600000`
